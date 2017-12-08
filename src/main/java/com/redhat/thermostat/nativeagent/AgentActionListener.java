@@ -3,9 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.redhat.javaagent;
+package com.redhat.thermostat.nativeagent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +32,8 @@ public class AgentActionListener extends Thread{
     private static Transformer transformer;
     private  Class[] loadedClasses;
     private static ClassHandler storage;
+    public static int DEFAULT_PORT = 9091;
+    public static String DEFAULT_HOST = "localhost";
     //private static final Logger logger = LoggingUtils.getLogger(AgentActionListener.class);
 
     private AgentActionListener(Transformer retransformer)
@@ -41,14 +44,25 @@ public class AgentActionListener extends Thread{
     }
 
 
+      public static synchronized boolean initialize(Transformer transformer)
+    {
+        return (initialize(null, null, transformer));
+    }
+    
     public static synchronized boolean initialize(String hostname, Integer port, Transformer transformer )
     {
         if (theActionListener == null) {
-            try {             
+            
+            try {
+                if (hostname == null) {
+                    hostname = DEFAULT_HOST;
+                }
+                if (port == null) {
+                    port = Integer.valueOf(DEFAULT_PORT);
+                }
                 theServerSocket = new ServerSocket();
                 theServerSocket.bind(new InetSocketAddress(hostname, port.intValue()));
                 //logger.log(Level.FINE, "TransformListener() : accepting requests on " + hostname + ":" + port);
-
             } catch (IOException e) {
                 //logger.log(Level.WARNING, "TransformListener() : unexpected exception opening server socket " + e);
                 //Helper.errTraceException(e);
@@ -90,9 +104,6 @@ public class AgentActionListener extends Thread{
 @Override
     public void run()
     {
-        // we don't want to see any triggers in the listener thread
-
-        //Rule.disableTriggersInternal();
 
         while (true) {
             if (theServerSocket.isClosed()) {
@@ -126,6 +137,7 @@ public class AgentActionListener extends Thread{
     private void handleConnection(Socket socket)
     {
         InputStream is = null;
+        System.out.println("handling");
         try {
             is = socket.getInputStream();
         } catch (IOException e) {
@@ -171,9 +183,11 @@ public class AgentActionListener extends Thread{
         }
         try {
             if (line == null) {
+                System.out.println("error");
                 out.write("ERROR");
                 out.flush();
-            } else if (line.equals("CLASSES")) {           
+            } else if (line.equals("CLASSES")) {  
+                System.out.println("classes");
                 getAllLoadedClasses(in, out);
             } else if (line.equals("BYTES")) {                
                 sendByteCode(in, out);
@@ -200,7 +214,7 @@ public class AgentActionListener extends Thread{
             //error should come, not expecting anything else to come
             return;
         }
-        out.write("CLASS");
+        out.write("CLASSES");
         loadedClasses = transformer.getLoadedClasses();
         storage.setLoadedClasses(loadedClasses);
         ArrayList<String> classList = storage.getClassesNames();
