@@ -22,7 +22,7 @@ public class InstrumentationProvider {
         this.instrumentation = inst;
     }
 
-    byte[] getClassBody(Class clazz) throws UnmodifiableClassException {
+   private byte[] getClassBody(Class clazz) throws UnmodifiableClassException {
         transformer.allowToSaveBytecode();
         byte[] result;
         try{
@@ -39,12 +39,12 @@ public class InstrumentationProvider {
         return result;
     }
 
-    byte[] findClassBody(String className) throws UnmodifiableClassException {
+    public byte[] findClassBody(String className) throws UnmodifiableClassException {
         return getClassBody(findClass(className));
 
     }
 
-    Class findClass(String className) {
+    private Class findClass(String className) {
         Class[] classes = instrumentation.getAllLoadedClasses();
         for (Class classe : classes) {
             if (classe.getName().equals(className)) {
@@ -54,7 +54,7 @@ public class InstrumentationProvider {
         throw new RuntimeException("Class " + className + " not found in loaded classes.");
     }
 
-    String[] getClassesNames() {
+   public String[] getClassesNames() {
         Class[] loadedClasses = instrumentation.getAllLoadedClasses();
         String[] r = new String[1000/*loadedClasses.length*/];
         for (int i = 0; i < r.length; i++) {
