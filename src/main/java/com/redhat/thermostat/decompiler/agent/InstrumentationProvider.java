@@ -26,6 +26,7 @@ public class InstrumentationProvider {
         transformer.allowToSaveBytecode();
         byte[] result;
         try{
+            transformer.allowToSaveBytecode();
         instrumentation.retransformClasses(clazz);
         result = transformer.getLastValidResult();
         }
@@ -55,7 +56,7 @@ public class InstrumentationProvider {
 
     String[] getClassesNames() {
         Class[] loadedClasses = instrumentation.getAllLoadedClasses();
-        String[] r = new String[100/*loadedClasses.length*/];
+        String[] r = new String[1000/*loadedClasses.length*/];
         for (int i = 0; i < r.length; i++) {
             Class loadedClasse = loadedClasses[i];
             r[i] = loadedClasse.getName();

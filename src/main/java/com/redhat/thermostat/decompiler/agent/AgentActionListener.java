@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
+ * To change this license header, choose License Headers inputStream Project Properties.
  * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * and open the template inputStream the editor.
  */
 package com.redhat.thermostat.decompiler.agent;
 
@@ -12,14 +12,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.instrument.UnmodifiableClassException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -27,120 +23,89 @@ import java.util.logging.Logger;
  */
 public class AgentActionListener extends Thread {
 
-    private static AgentActionListener theActionListener = null;
+    private static AgentActionListener inited = null;
 
-    public static int DEFAULT_PORT = 9091;
-    public static String DEFAULT_HOST = "localhost";
+    public static int DEFAULT_PORT = 5395;
+    public static String DEFAULT_ADRESS = "localhost";
     private ServerSocket theServerSocket;
     private InstrumentationProvider provider;
-    private static String hostnameGiven;
+    private static String addressGiven;
     private static Integer portGiven;
 
-    private AgentActionListener(InstrumentationProvider p, ServerSocket ss) {
-        provider = p;
-        theServerSocket = ss;
+    private AgentActionListener(InstrumentationProvider provider, ServerSocket serverSocket) {
+        this.provider = provider;
+        this.theServerSocket = serverSocket;
         setDaemon(true);
     }
 
-    public static synchronized boolean initialize(String hostname, Integer port, InstrumentationProvider prov) {
-        AgentActionListener.hostnameGiven = hostname;
+    public static synchronized boolean initialize(String hostname, Integer port, InstrumentationProvider provider) {
+        AgentActionListener.addressGiven = hostname;
         portGiven = port;
-        if (theActionListener == null) {
-            ServerSocket ss = null;
+        if (inited == null) {
+            ServerSocket initServerSocket = null;
             try {
-                if (hostname == null) {
-                    hostname = DEFAULT_HOST;
-                }
                 if (port == null) {
                     port = DEFAULT_PORT;
                 }
-                ss = new ServerSocket();
-                ss.bind(new InetSocketAddress(hostname, port));
-                //logger.log(Level.FINE, "TransformListener() : accepting requests on " + hostname + ":" + port);
+                if (hostname == null) {
+                    hostname = DEFAULT_ADRESS;
+                }
+                initServerSocket = new ServerSocket();
+                initServerSocket.bind(new InetSocketAddress(hostname, port));
             } catch (IOException e) {
-                //logger.log(Level.WARNING, "TransformListener() : unexpected exception opening server socket " + e);
-                //Helper.errTraceException(e);
+                System.err.println("Exception occured when opening the socket: " + e);
                 return false;
             }
 
-            theActionListener = new AgentActionListener(prov, ss);
-
-            theActionListener.start();
-        }
-
-        return true;
-    }
-
-    public synchronized boolean terminate() {
-
-        if (theActionListener != null) {
-            try {
-                theServerSocket.close();
-                //Helper.verbose("TransformListener() :  closing port " + DEFAULT_PORT);
-
-            } catch (IOException e) {
-                // ignore -- the thread should exit anyway
-            }
-            try {
-                theActionListener.join();
-            } catch (InterruptedException e) {
-                // ignore
-            }
-
-            theActionListener = null;
-            theServerSocket = null;
+            inited = new AgentActionListener(provider, initServerSocket);
+            inited.start();
         }
 
         return true;
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
 
         while (true) {
             if (theServerSocket.isClosed()) {
                 return;
-                }
-            Socket socket = null;
+            }
+            Socket temporarySocket = null;
             try {
-                socket = theServerSocket.accept();
+                temporarySocket = theServerSocket.accept();
             } catch (IOException e) {
                 if (!theServerSocket.isClosed()) {
-                    //Helper.err("TransformListener.run : exception from server socket accept " + e);
-                    //Helper.errTraceException(e);
+                    System.err.println("The server socket is closed, killing the thread.");
                 }
                 return;
             }
 
-            //Helper.verbose("TransformListener() : handling connection on port " + socket.getLocalPort());
             try {
-                handleConnection(socket);
+                executeRequest(temporarySocket);
             } catch (Exception e) {
-                //Helper.err("TransformListener() : error handling connection on port " + socket.getLocalPort());
+                System.err.println("Error when trying to execute the request. Exception: " + e);
                 try {
-                    socket.close();
+                    temporarySocket.close();
                 } catch (IOException e1) {
-                    // do nothing
+                    System.err.println("Error when trying to close the socket: " + e1);
+                    //we can ignore this one too, since we are closing the socket anyway
                 }
             }
         }
     }
 
-    private void handleConnection(Socket socket) {
+    private void executeRequest(Socket socket) {
         InputStream is = null;
         try {
             is = socket.getInputStream();
         } catch (IOException e) {
-            // oops. cannot handle this
-            //Helper.err("TransformListener.run : error opening socket input stream " + e);
-            //Helper.errTraceException(e);
+            System.err.println("Error when opening the input stream of the socket. Exception: " + e);
 
             try {
                 socket.close();
             } catch (IOException e1) {
-                //Helper.err("TransformListener.run : exception closing socket after failed input stream open" + e1);
-                //Helper.errTraceException(e1);
+               System.err.println("Error when closing the socket. Exception: " + e1);
             }
             return;
         }
@@ -149,54 +114,48 @@ public class AgentActionListener extends Thread {
         try {
             os = socket.getOutputStream();
         } catch (IOException e) {
-            // oops. cannot handle this
-            //Helper.err("TransformListener.run : error opening socket output stream " + e);
-            //Helper.errTraceException(e);
+            System.err.println("Error when opening the output stream of the socket. Exception: " + e);
 
             try {
                 socket.close();
             } catch (IOException e1) {
-                //Helper.err("TransformListener.run : exception closing socket after failed output stream open" + e1);
-                //Helper.errTraceException(e1);
+                System.err.println("Error when closing the socket. Exception: " + e1);
             }
             return;
         }
-        BufferedReader in = new BufferedReader(new InputStreamReader(is));
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
+        BufferedReader inputStream = new BufferedReader(new InputStreamReader(is));
+        BufferedWriter outputStream = new BufferedWriter(new OutputStreamWriter(os));
 
         String line = null;
         try {
-            line = in.readLine();
-            System.out.println("line");
+            line = inputStream.readLine();
         } catch (IOException e) {
-            e.printStackTrace();
-            //Helper.err("TransformListener.run : exception " + e + " while reading command");
-            //Helper.errTraceException(e);
+            System.err.println("Exception occured during reading of the line: " + e);
         }
         try {
-            if (line == null) {
-
-                System.out.println("error");
-                out.write("ERROR\n");
-                out.flush();
-            } else if (line.equals("CLASSES")) {
-                System.out.println("classes");
-                getAllLoadedClasses(in, out);
-            } else if (line.equals("BYTES")) {
-                sendByteCode(in, out);
-            } else {
-                out.write("ERROR\n");
-                out.flush();
+            if (null == line) {
+                outputStream.write("ERROR\n");
+                outputStream.flush();
+            } else switch (line) {
+                case "CLASSES":
+                    getAllLoadedClasses(inputStream, outputStream);
+                    break;
+                case "BYTES":
+                    sendByteCode(inputStream, outputStream);
+                    break;
+                default:
+                    outputStream.write("ERROR\n");
+                    outputStream.flush();
+                    break;
             }
-        } catch (Exception e) {
-            //logger.log(Level.WARNING, "TransformListener.run : exception " + e + " processing command " + line);
+        } catch (IOException e) {
+            System.err.println("Exception occured while trying to process the request:" + e);
 
         } finally {
             try {
                 socket.close();
-            } catch (IOException e1) {
-                //Helper.err("TransformListener.run : exception closing socket " + e1);
-                //Helper.errTraceException(e1);
+            } catch (IOException e) {
+                System.err.println("Exception occured while trying to close the socket:" + e);
             }
         }
     }
@@ -219,11 +178,12 @@ public class AgentActionListener extends Thread {
             out.flush();
             return;
         }
-        out.write("BYTES");
-        out.newLine();
+        
         try {
             byte[] body = provider.findClassBody(className);
             String encoded = Base64.getEncoder().encodeToString(body);
+            out.write("BYTES");
+            out.newLine();
             out.write(encoded);
             out.newLine();
         } catch (Exception ex) {

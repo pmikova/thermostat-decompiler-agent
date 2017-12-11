@@ -1,75 +1,46 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.redhat.thermostat.decompiler.agent;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
-import java.net.Socket;
-import java.util.ArrayList;
 
-/**
- *
- * @author pmikova
- */
 public class Main {
 
-    private static final String ADDRESS = "address:";
-    private static final String PORT = "port:";
+    private static final String ADRESS_STRING = "address:";
+    private static final String PORT_STRING = "port:";
     private static String hostname;
     private static Integer port;
-    
 
-
-    /**
-     * @param agentArgs
-     * @param inst
-     * @throws java.lang.instrument.IllegalClassFormatException
-     * @throws java.lang.instrument.UnmodifiableClassException
-     * @throws java.io.IOException
-     */
-    public static void premain(String agentArgs, Instrumentation inst) throws IllegalClassFormatException, UnmodifiableClassException, IOException, Exception {
-        Socket dummy = new Socket();
+    public static void premain(String agentArgs, Instrumentation inst){
         Transformer transformer = new Transformer();
-        inst.addTransformer(transformer);
-        InstrumentationProvider p  = new InstrumentationProvider(inst, transformer);
-        
-         if (agentArgs != null) {
+        inst.addTransformer(transformer, true);
+        InstrumentationProvider p = new InstrumentationProvider(inst, transformer);
+
+        if (agentArgs != null) {
             String[] argsArray = agentArgs.split(",");
             for (String arg : argsArray) {
-                if (arg.startsWith(ADDRESS)) {
-                    hostname = arg.substring(ADDRESS.length(), arg.length());
-                    
+                if (arg.startsWith(ADRESS_STRING)) {
+                    hostname = arg.substring(ADRESS_STRING.length(), arg.length());
 
-                } else if (arg.startsWith("port:")) {
+                } else if (arg.startsWith(PORT_STRING)) {
                     try {
-                        port = Integer.valueOf(arg.substring(PORT.length(), arg.length()));
+                        port = Integer.valueOf(arg.substring(PORT_STRING.length(), arg.length()));
                         if (port <= 0) {
-                            System.err.println("Invalid port specified [" + port + "]");
+                            System.err.println("The port value is negative:" + port );
                             port = null;
 
                         }
-                        } catch (Exception e) {
-                        System.err.println("Invalid port specified [" + arg + "]. Cause: " + e);
+                    } catch (Exception e) {
+                        System.err.println("The port value is invalid: " + arg + " . Exception: " + e);
                     }
-                }}}
-
-        boolean listenerStarted = AgentActionListener.initialize(hostname, port, p);               
-        
+                }
+            }
         }
-    
 
+        boolean start = AgentActionListener.initialize(hostname, port, p);
+
+    }
 
     public static void agentmain(String args, Instrumentation inst) throws Exception {
         premain(args, inst);
     }
-    
-    
+
 }
