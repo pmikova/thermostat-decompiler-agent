@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.redhat.thermostat.nativeagent;
+package com.redhat.thermostat.decompiler.agent;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,43 +25,37 @@ import java.util.logging.Logger;
  *
  * @author pmikova
  */
-public class AgentActionListener extends Thread{
-    
+public class AgentActionListener extends Thread {
+
     private static AgentActionListener theActionListener = null;
-    private static ServerSocket theServerSocket;
-    private static Transformer transformer;
-    private  Class[] loadedClasses;
-    private static ClassHandler storage;
+
     public static int DEFAULT_PORT = 9091;
     public static String DEFAULT_HOST = "localhost";
-    //private static final Logger logger = LoggingUtils.getLogger(AgentActionListener.class);
+    private ServerSocket theServerSocket;
+    private InstrumentationProvider provider;
+    private static String hostnameGiven;
+    private static Integer portGiven;
 
-    private AgentActionListener(Transformer retransformer)
-    {
-        AgentActionListener.transformer = retransformer;
+    private AgentActionListener(InstrumentationProvider p, ServerSocket ss) {
+        provider = p;
+        theServerSocket = ss;
         setDaemon(true);
-        AgentActionListener.storage = ClassHandler.getInstance();
     }
 
-
-      public static synchronized boolean initialize(Transformer transformer)
-    {
-        return (initialize(null, null, transformer));
-    }
-    
-    public static synchronized boolean initialize(String hostname, Integer port, Transformer transformer )
-    {
+    public static synchronized boolean initialize(String hostname, Integer port, InstrumentationProvider prov) {
+        AgentActionListener.hostnameGiven = hostname;
+        portGiven = port;
         if (theActionListener == null) {
-            
+            ServerSocket ss = null;
             try {
                 if (hostname == null) {
                     hostname = DEFAULT_HOST;
                 }
                 if (port == null) {
-                    port = Integer.valueOf(DEFAULT_PORT);
+                    port = DEFAULT_PORT;
                 }
-                theServerSocket = new ServerSocket();
-                theServerSocket.bind(new InetSocketAddress(hostname, port.intValue()));
+                ss = new ServerSocket();
+                ss.bind(new InetSocketAddress(hostname, port));
                 //logger.log(Level.FINE, "TransformListener() : accepting requests on " + hostname + ":" + port);
             } catch (IOException e) {
                 //logger.log(Level.WARNING, "TransformListener() : unexpected exception opening server socket " + e);
@@ -69,7 +63,7 @@ public class AgentActionListener extends Thread{
                 return false;
             }
 
-            theActionListener = new AgentActionListener(transformer);
+            theActionListener = new AgentActionListener(prov, ss);
 
             theActionListener.start();
         }
@@ -77,13 +71,12 @@ public class AgentActionListener extends Thread{
         return true;
     }
 
-    public static synchronized boolean terminate()
-    {
+    public synchronized boolean terminate() {
 
         if (theActionListener != null) {
             try {
                 theServerSocket.close();
-               //Helper.verbose("TransformListener() :  closing port " + DEFAULT_PORT);
+                //Helper.verbose("TransformListener() :  closing port " + DEFAULT_PORT);
 
             } catch (IOException e) {
                 // ignore -- the thread should exit anyway
@@ -99,16 +92,16 @@ public class AgentActionListener extends Thread{
         }
 
         return true;
-        }
-    
-@Override
+    }
+
+    @Override
     public void run()
     {
 
         while (true) {
             if (theServerSocket.isClosed()) {
                 return;
-            }
+                }
             Socket socket = null;
             try {
                 socket = theServerSocket.accept();
@@ -134,10 +127,8 @@ public class AgentActionListener extends Thread{
         }
     }
 
-    private void handleConnection(Socket socket)
-    {
+    private void handleConnection(Socket socket) {
         InputStream is = null;
-        System.out.println("handling");
         try {
             is = socket.getInputStream();
         } catch (IOException e) {
@@ -172,32 +163,34 @@ public class AgentActionListener extends Thread{
         }
         BufferedReader in = new BufferedReader(new InputStreamReader(is));
         BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
-        
 
         String line = null;
         try {
             line = in.readLine();
+            System.out.println("line");
         } catch (IOException e) {
+            e.printStackTrace();
             //Helper.err("TransformListener.run : exception " + e + " while reading command");
             //Helper.errTraceException(e);
         }
         try {
             if (line == null) {
+
                 System.out.println("error");
-                out.write("ERROR");
+                out.write("ERROR\n");
                 out.flush();
-            } else if (line.equals("CLASSES")) {  
+            } else if (line.equals("CLASSES")) {
                 System.out.println("classes");
                 getAllLoadedClasses(in, out);
-            } else if (line.equals("BYTES")) {                
+            } else if (line.equals("BYTES")) {
                 sendByteCode(in, out);
             } else {
-                out.write("ERROR");
+                out.write("ERROR\n");
                 out.flush();
             }
         } catch (Exception e) {
             //logger.log(Level.WARNING, "TransformListener.run : exception " + e + " processing command " + line);
-            
+
         } finally {
             try {
                 socket.close();
@@ -205,56 +198,38 @@ public class AgentActionListener extends Thread{
                 //Helper.err("TransformListener.run : exception closing socket " + e1);
                 //Helper.errTraceException(e1);
             }
-        }    
-    }    
-        private void getAllLoadedClasses(BufferedReader in, BufferedWriter out) throws IOException
-    {
-        String line = in.readLine();
-        if (line != null){
-            //error should come, not expecting anything else to come
-            return;
         }
+    }
+
+    private void getAllLoadedClasses(BufferedReader in, BufferedWriter out) throws IOException {
         out.write("CLASSES");
-        loadedClasses = transformer.getLoadedClasses();
-        storage.setLoadedClasses(loadedClasses);
-        ArrayList<String> classList = storage.getClassesNames();
+        out.newLine();
+        String[] classList = provider.getClassesNames();
         for (String classe : classList) {
+            out.write(classe);
             out.newLine();
-            out.write(classe);         
-            
-        }      
+        }
         out.flush();
     }
-        
-        private void sendByteCode(BufferedReader in, BufferedWriter out) throws IOException {
+
+    private void sendByteCode(BufferedReader in, BufferedWriter out) throws IOException {
         String className = in.readLine();
-        if (className == null){
-            out.write("ERROR");
+        if (className == null) {
+            out.write("ERROR\n");
             out.flush();
             return;
         }
         out.write("BYTES");
         out.newLine();
-        Class classToRetransform = storage.findClass(className);
-            if (classToRetransform == null) {
-                out.write("ERROR");
-                out.flush();
-                storage.cleanUp();
-                return;
-            }
         try {
-            String name = transformer.retransformClass(classToRetransform);
-        } catch (UnmodifiableClassException ex) {
-            out.write("ERROR");
-            // unmodifiable exception
+            byte[] body = provider.findClassBody(className);
+            String encoded = Base64.getEncoder().encodeToString(body);
+            out.write(encoded);
+            out.newLine();
+        } catch (Exception ex) {
+            out.write("ERROR\n");
         }
-        byte[] classBytes = storage.getByteArray(className);
-        String encoded = Base64.getEncoder().encodeToString(classBytes);
-        out.write(encoded);
-        out.flush();      
-        }
+        out.flush();
+    }
 
 }
-
-    
-

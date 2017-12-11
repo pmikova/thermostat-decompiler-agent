@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.redhat.thermostat.nativeagent;
+package com.redhat.thermostat.decompiler.agent;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -21,16 +21,12 @@ import java.util.ArrayList;
  */
 public class Main {
 
-    public static ClassHandler classHandler;
-    public static ArrayList<Class> classesToFind;
     private static final String ADDRESS = "address:";
     private static final String PORT = "port:";
     private static String hostname;
     private static Integer port;
+    
 
-    public static ClassHandler getHandler() {
-        return Main.classHandler;
-    }
 
     /**
      * @param agentArgs
@@ -40,10 +36,10 @@ public class Main {
      * @throws java.io.IOException
      */
     public static void premain(String agentArgs, Instrumentation inst) throws IllegalClassFormatException, UnmodifiableClassException, IOException, Exception {
-         
         Socket dummy = new Socket();
-        Transformer transformer = new Transformer(inst);
-        
+        Transformer transformer = new Transformer();
+        inst.addTransformer(transformer);
+        InstrumentationProvider p  = new InstrumentationProvider(inst, transformer);
         
          if (agentArgs != null) {
             String[] argsArray = agentArgs.split(",");
@@ -65,7 +61,7 @@ public class Main {
                     }
                 }}}
 
-        boolean listenerStarted = AgentActionListener.initialize(hostname, port, transformer);               
+        boolean listenerStarted = AgentActionListener.initialize(hostname, port, p);               
         
         }
     
