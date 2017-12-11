@@ -2,9 +2,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.redhat.thermostat.agent</groupId>
-    <artifactId>nativeagent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>decompiler-agent</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
+    <name>Decompiler Agent</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -19,8 +20,8 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>com.redhat.thermostat.nativeagent.Main</Premain-Class>
-                            <Agent-Class>com.redhat.thermostat.nativeagent.Main</Agent-Class>
+                            <Premain-Class>com.redhat.thermostat.decompiler.agent.Main</Premain-Class>
+                            <Agent-Class>com.redhat.thermostat.decompiler.agent.Main</Agent-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
                         </manifestEntries>
@@ -31,5 +32,6 @@
     </build>
     <dependencies>
     </dependencies>
+    
 </project>
 
