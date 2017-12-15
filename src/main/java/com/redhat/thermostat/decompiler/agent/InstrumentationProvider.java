@@ -11,6 +11,7 @@ import java.lang.instrument.UnmodifiableClassException;
 /**
  * This class stores instrumentation and transformer objects and handles the
  * transformation, retrieval of bytecode and class names.
+ *
  * @author pmikova
  */
 public class InstrumentationProvider {
@@ -23,27 +24,27 @@ public class InstrumentationProvider {
         this.instrumentation = inst;
     }
 
-   private byte[] getClassBody(Class clazz) throws UnmodifiableClassException {
+    private byte[] getClassBody(Class clazz) throws UnmodifiableClassException {
         transformer.allowToSaveBytecode();
         byte[] result;
-        try{
+        try {
             transformer.allowToSaveBytecode();
-        instrumentation.retransformClasses(clazz);
-        String nameWithSlashes = clazz.getName().replace(".", "/");
-        result = transformer.getResult(nameWithSlashes);
-        }
-        catch (RuntimeException ex){
+            instrumentation.retransformClasses(clazz);
+            String nameWithSlashes = clazz.getName().replace(".", "/");
+            result = transformer.getResult(nameWithSlashes);
+        } catch (RuntimeException ex) {
             throw new RuntimeException(ex);
         }
-        
+
         transformer.denyToSaveBytecode();
         transformer.resetLastValidResult();
         return result;
     }
 
     /**
-     * Finds class object corresponding to the class name and returns its 
+     * Finds class object corresponding to the class name and returns its
      * bytecode.
+     *
      * @param className name of class we want to get
      * @return bytecode of given class
      * @throws UnmodifiableClassException if the class can not be retransformed
@@ -65,6 +66,7 @@ public class InstrumentationProvider {
 
     /**
      * This class retrieves the loaded classes names.
+     *
      * @return array of loaded classes
      */
     public String[] getClassesNames() {

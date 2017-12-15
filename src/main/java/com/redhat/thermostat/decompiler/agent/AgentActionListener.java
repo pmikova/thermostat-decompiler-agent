@@ -18,7 +18,9 @@ import java.net.Socket;
 import java.util.Base64;
 
 /**
- * This class handles the socket accepting and request processing from the decompiler
+ * This class handles the socket accepting and request processing from the
+ * decompiler
+ *
  * @author pmikova
  */
 public class AgentActionListener extends Thread {
@@ -41,10 +43,12 @@ public class AgentActionListener extends Thread {
     /**
      * This method is used to create an AgentActionListener object and start
      * listener thread
+     *
      * @param hostname host name to open communication with
      * @param port on which open socket
-     * @param provider this is where instrumentation and transformer objects are stored
-     * 
+     * @param provider this is where instrumentation and transformer objects are
+     * stored
+     *
      * @return boolean true if ran correctly, else false
      */
     public static synchronized boolean initialize(String hostname, Integer port,
@@ -116,7 +120,7 @@ public class AgentActionListener extends Thread {
             try {
                 socket.close();
             } catch (IOException e1) {
-               System.err.println("Error when closing the socket. Exception: " + e1);
+                System.err.println("Error when closing the socket. Exception: " + e1);
             }
             return;
         }
@@ -147,17 +151,19 @@ public class AgentActionListener extends Thread {
             if (null == line) {
                 outputStream.write("ERROR\n");
                 outputStream.flush();
-            } else switch (line) {
-                case "CLASSES":
-                    getAllLoadedClasses(inputStream, outputStream);
-                    break;
-                case "BYTES":
-                    sendByteCode(inputStream, outputStream);
-                    break;
-                default:
-                    outputStream.write("ERROR\n");
-                    outputStream.flush();
-                    break;
+            } else {
+                switch (line) {
+                    case "CLASSES":
+                        getAllLoadedClasses(inputStream, outputStream);
+                        break;
+                    case "BYTES":
+                        sendByteCode(inputStream, outputStream);
+                        break;
+                    default:
+                        outputStream.write("ERROR\n");
+                        outputStream.flush();
+                        break;
+                }
             }
         } catch (IOException e) {
             System.err.println("Exception occured while trying to process the request:" + e);
@@ -189,7 +195,7 @@ public class AgentActionListener extends Thread {
             out.flush();
             return;
         }
-        
+
         try {
             byte[] body = provider.findClassBody(className);
             String encoded = Base64.getEncoder().encodeToString(body);

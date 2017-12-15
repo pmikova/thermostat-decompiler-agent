@@ -12,6 +12,7 @@ import java.util.HashMap;
 
 /**
  * This class represent our transformer for retrieving bytecode.
+ *
  * @author pmikova
  */
 public class Transformer implements ClassFileTransformer {
@@ -24,13 +25,14 @@ public class Transformer implements ClassFileTransformer {
         if (allowToSaveBytecode) {
 
             results.put(className, classfileBuffer);
-                    }
+        }
 
         return null;
     }
 
     /**
      * Returns bytecode of transformed class.
+     *
      * @param name name of class we want to get
      * @return bytes of given class
      */

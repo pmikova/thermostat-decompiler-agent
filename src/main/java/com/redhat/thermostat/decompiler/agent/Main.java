@@ -4,6 +4,7 @@ import java.lang.instrument.Instrumentation;
 
 /**
  * This class contains agent's premain and agentmain methods.
+ *
  * @author pmikova
  */
 public class Main {
@@ -14,13 +15,13 @@ public class Main {
     private static Integer port;
 
     /**
-     * Premain method is executed when the agent is loaded. 
-     * It sets the port and host name from agentArgs and starts the listener 
-     * thread.
+     * Premain method is executed when the agent is loaded. It sets the port and
+     * host name from agentArgs and starts the listener thread.
+     *
      * @param agentArgs arguments with parameters for listener
      * @param inst instance of instrumentation of given VM
      */
-    public static void premain(String agentArgs, Instrumentation inst){
+    public static void premain(String agentArgs, Instrumentation inst) {
         Transformer transformer = new Transformer();
         inst.addTransformer(transformer, true);
         InstrumentationProvider p = new InstrumentationProvider(inst, transformer);
@@ -35,7 +36,7 @@ public class Main {
                     try {
                         port = Integer.valueOf(arg.substring(PORT_STRING.length(), arg.length()));
                         if (port <= 0) {
-                            System.err.println("The port value is negative:" + port );
+                            System.err.println("The port value is negative:" + port);
                             port = null;
 
                         }
@@ -52,6 +53,7 @@ public class Main {
 
     /**
      * This method only calls the premain
+     *
      * @param args arguments with parameters for listener
      * @param inst instance of instrumentation of given VM
      */
