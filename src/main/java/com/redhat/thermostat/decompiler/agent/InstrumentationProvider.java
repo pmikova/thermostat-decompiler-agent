@@ -9,7 +9,8 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 
 /**
- *
+ * This class stores instrumentation and transformer objects and handles the
+ * transformation, retrieval of bytecode and class names.
  * @author pmikova
  */
 public class InstrumentationProvider {
@@ -40,6 +41,13 @@ public class InstrumentationProvider {
         return result;
     }
 
+    /**
+     * Finds class object corresponding to the class name and returns its 
+     * bytecode.
+     * @param className name of class we want to get
+     * @return bytecode of given class
+     * @throws UnmodifiableClassException if the class can not be retransformed
+     */
     public byte[] findClassBody(String className) throws UnmodifiableClassException {
         return getClassBody(findClass(className));
 
@@ -55,7 +63,11 @@ public class InstrumentationProvider {
         throw new RuntimeException("Class " + className + " not found in loaded classes.");
     }
 
-   public String[] getClassesNames() {
+    /**
+     * This class retrieves the loaded classes names.
+     * @return array of loaded classes
+     */
+    public String[] getClassesNames() {
         Class[] loadedClasses = instrumentation.getAllLoadedClasses();
         String[] r = new String[1000/*loadedClasses.length*/];
         for (int i = 0; i < r.length; i++) {

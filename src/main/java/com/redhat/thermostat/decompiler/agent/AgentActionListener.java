@@ -18,15 +18,15 @@ import java.net.Socket;
 import java.util.Base64;
 
 /**
- *
+ * This class handles the socket accepting and request processing from the decompiler
  * @author pmikova
  */
 public class AgentActionListener extends Thread {
 
     private static AgentActionListener inited = null;
 
-    public static int DEFAULT_PORT = 5395;
-    public static String DEFAULT_ADRESS = "localhost";
+    public static final int DEFAULT_PORT = 5395;
+    public static final String DEFAULT_ADRESS = "localhost";
     private ServerSocket theServerSocket;
     private InstrumentationProvider provider;
     private static String addressGiven;
@@ -38,7 +38,17 @@ public class AgentActionListener extends Thread {
         setDaemon(true);
     }
 
-    public static synchronized boolean initialize(String hostname, Integer port, InstrumentationProvider provider) {
+    /**
+     * This method is used to create an AgentActionListener object and start
+     * listener thread
+     * @param hostname host name to open communication with
+     * @param port on which open socket
+     * @param provider this is where instrumentation and transformer objects are stored
+     * 
+     * @return boolean true if ran correctly, else false
+     */
+    public static synchronized boolean initialize(String hostname, Integer port,
+            InstrumentationProvider provider) {
         AgentActionListener.addressGiven = hostname;
         portGiven = port;
         if (inited == null) {
@@ -53,7 +63,8 @@ public class AgentActionListener extends Thread {
                 initServerSocket = new ServerSocket();
                 initServerSocket.bind(new InetSocketAddress(hostname, port));
             } catch (IOException e) {
-                System.err.println("Exception occured when opening the socket: " + e);
+                System.err.println("Exception occured when opening the socket: "
+                        + e);
                 return false;
             }
 
