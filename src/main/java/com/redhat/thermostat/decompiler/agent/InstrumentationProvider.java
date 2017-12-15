@@ -28,7 +28,8 @@ public class InstrumentationProvider {
         try{
             transformer.allowToSaveBytecode();
         instrumentation.retransformClasses(clazz);
-        result = transformer.getLastValidResult();
+        String nameWithSlashes = clazz.getName().replace(".", "/");
+        result = transformer.getResult(nameWithSlashes);
         }
         catch (RuntimeException ex){
             throw new RuntimeException(ex);
