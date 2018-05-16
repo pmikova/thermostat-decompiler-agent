@@ -71,7 +71,7 @@ public class InstrumentationProvider {
      */
     public String[] getClassesNames() {
         Class[] loadedClasses = instrumentation.getAllLoadedClasses();
-        String[] r = new String[1000/*loadedClasses.length*/];
+        String[] r = new String[loadedClasses.length];
         for (int i = 0; i < r.length; i++) {
             Class loadedClasse = loadedClasses[i];
             r[i] = loadedClasse.getName();
