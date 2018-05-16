@@ -55,6 +55,10 @@ public class AgentActionListener extends Thread {
             InstrumentationProvider provider) {
         AgentActionListener.addressGiven = hostname;
         portGiven = port;
+        if (inited != null) {
+            inited.interrupt();
+            inited = null;
+        }
         if (inited == null) {
             ServerSocket initServerSocket = null;
             try {
@@ -153,6 +157,10 @@ public class AgentActionListener extends Thread {
                 outputStream.flush();
             } else {
                 switch (line) {
+                    case "HALT":
+                        closeSocket(outputStream);
+                        System.out.println("AGENT: Received HALT command, Closing socket and exiting.");
+                        break;
                     case "CLASSES":
                         getAllLoadedClasses(inputStream, outputStream);
                         break;
@@ -207,6 +215,12 @@ public class AgentActionListener extends Thread {
             out.write("ERROR\n");
         }
         out.flush();
+    }
+
+    private void closeSocket(BufferedWriter out) throws IOException {
+        out.write("GOODBYE");
+        out.flush();
+        theServerSocket.close();
     }
 
 }
