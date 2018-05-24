@@ -69,6 +69,7 @@ public class AgentActionListener extends Thread {
                     hostname = DEFAULT_ADRESS;
                 }
                 initServerSocket = new ServerSocket();
+                initServerSocket.setSoTimeout(300000);
                 initServerSocket.bind(new InetSocketAddress(hostname, port));
             } catch (IOException e) {
                 System.err.println("Exception occured when opening the socket: "
