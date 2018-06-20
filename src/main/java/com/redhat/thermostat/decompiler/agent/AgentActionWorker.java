@@ -12,8 +12,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Base64;
 
@@ -23,94 +21,24 @@ import java.util.Base64;
  *
  * @author pmikova
  */
-public class AgentActionListener extends Thread {
+public class AgentActionWorker extends Thread {
 
-    private static AgentActionListener inited = null;
-
-    public static final int DEFAULT_PORT = 5395;
-    public static final String DEFAULT_ADRESS = "localhost";
-    private ServerSocket theServerSocket;
+    private Socket socket;
     private InstrumentationProvider provider;
-    private static String addressGiven;
-    private static Integer portGiven;
 
-    private AgentActionListener(InstrumentationProvider provider, ServerSocket serverSocket) {
+    public AgentActionWorker(Socket socket, InstrumentationProvider provider){
+        this.socket = socket;
         this.provider = provider;
-        this.theServerSocket = serverSocket;
-        setDaemon(true);
-    }
 
-    /**
-     * This method is used to create an AgentActionListener object and start
-     * listener thread
-     *
-     * @param hostname host name to open communication with
-     * @param port on which open socket
-     * @param provider this is where instrumentation and transformer objects are
-     * stored
-     *
-     * @return boolean true if ran correctly, else false
-     */
-    public static synchronized boolean initialize(String hostname, Integer port,
-            InstrumentationProvider provider) {
-        AgentActionListener.addressGiven = hostname;
-        portGiven = port;
-        if (inited != null) {
-            inited.interrupt();
-            inited = null;
-        }
-        if (inited == null) {
-            ServerSocket initServerSocket = null;
+        try {
+            executeRequest(socket);
+        } catch (Exception e) {
+            System.err.println("Error when trying to execute the request. Exception: " + e);
             try {
-                if (port == null) {
-                    port = DEFAULT_PORT;
-                }
-                if (hostname == null) {
-                    hostname = DEFAULT_ADRESS;
-                }
-                initServerSocket = new ServerSocket();
-                initServerSocket.setSoTimeout(300000);
-                initServerSocket.bind(new InetSocketAddress(hostname, port));
-            } catch (IOException e) {
-                System.err.println("Exception occured when opening the socket: "
-                        + e);
-                return false;
-            }
-
-            inited = new AgentActionListener(provider, initServerSocket);
-            inited.start();
-        }
-
-        return true;
-    }
-
-    @Override
-    public void run() {
-
-        while (true) {
-            if (theServerSocket.isClosed()) {
-                return;
-            }
-            Socket temporarySocket = null;
-            try {
-                temporarySocket = theServerSocket.accept();
-            } catch (IOException e) {
-                if (!theServerSocket.isClosed()) {
-                    System.err.println("The server socket is closed, killing the thread.");
-                }
-                return;
-            }
-
-            try {
-                executeRequest(temporarySocket);
-            } catch (Exception e) {
-                System.err.println("Error when trying to execute the request. Exception: " + e);
-                try {
-                    temporarySocket.close();
-                } catch (IOException e1) {
-                    System.err.println("Error when trying to close the socket: " + e1);
-                    //we can ignore this one too, since we are closing the socket anyway
-                }
+                socket.close();
+            } catch (IOException e1) {
+                System.err.println("Error when trying to close the socket: " + e1);
+                //we can ignore this one too, since we are closing the socket anyway
             }
         }
     }
@@ -150,7 +78,7 @@ public class AgentActionListener extends Thread {
         try {
             line = inputStream.readLine();
         } catch (IOException e) {
-            System.err.println("Exception occured during reading of the line: " + e);
+            System.err.println("Exception occurred during reading of the line: " + e);
         }
         try {
             if (null == line) {
@@ -221,7 +149,8 @@ public class AgentActionListener extends Thread {
     private void closeSocket(BufferedWriter out) throws IOException {
         out.write("GOODBYE");
         out.flush();
-        theServerSocket.close();
+        socket.close();
+        ConnectionDelegator.gracefulShutdown();
     }
 
 }

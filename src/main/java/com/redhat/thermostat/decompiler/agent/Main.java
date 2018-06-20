@@ -47,7 +47,7 @@ public class Main {
             }
         }
 
-        boolean start = AgentActionListener.initialize(hostname, port, p);
+        boolean start = ConnectionDelegator.initialize(hostname, port, p);
 
     }
 
