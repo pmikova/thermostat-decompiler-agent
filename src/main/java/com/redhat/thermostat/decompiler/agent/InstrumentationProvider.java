@@ -7,6 +7,7 @@ package com.redhat.thermostat.decompiler.agent;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This class stores instrumentation and transformer objects and handles the
@@ -65,19 +66,20 @@ public class InstrumentationProvider {
     }
 
     /**
-     * This class retrieves the loaded classes names.
+     * Inserts names of classes into queue.
+     * Stops execution when it receives abort signal.
      *
-     * @return array of loaded classes
+     * @param queue output queue
+     * @param abort abort signal
      */
-    public String[] getClassesNames() {
+    public void getClassesNames(LinkedBlockingQueue<String> queue, Boolean abort) throws InterruptedException {
         Class[] loadedClasses = instrumentation.getAllLoadedClasses();
-        String[] r = new String[loadedClasses.length];
-        for (int i = 0; i < r.length; i++) {
-            Class loadedClasse = loadedClasses[i];
-            r[i] = loadedClasse.getName();
-
+        for (Class loadedClass : loadedClasses) {
+            queue.put(loadedClass.getName());
+            if (abort) {
+                break;
+            }
         }
-        return r;
+        queue.put("---END---");
     }
-
 }

@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.Base64;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This class handles the socket accepting and request processing from the
@@ -25,6 +26,7 @@ public class AgentActionWorker extends Thread {
 
     private Socket socket;
     private InstrumentationProvider provider;
+    private Boolean abort = false;
 
     public AgentActionWorker(Socket socket, InstrumentationProvider provider){
         this.socket = socket;
@@ -33,7 +35,7 @@ public class AgentActionWorker extends Thread {
         try {
             executeRequest(socket);
         } catch (Exception e) {
-            System.err.println("Error when trying to execute the request. Exception: " + e);
+            e.printStackTrace();
             try {
                 socket.close();
             } catch (IOException e1) {
@@ -117,10 +119,31 @@ public class AgentActionWorker extends Thread {
     private void getAllLoadedClasses(BufferedReader in, BufferedWriter out) throws IOException {
         out.write("CLASSES");
         out.newLine();
-        String[] classList = provider.getClassesNames();
-        for (String classe : classList) {
-            out.write(classe);
-            out.newLine();
+        LinkedBlockingQueue<String> classNames = new LinkedBlockingQueue<String>(1024);
+        new Thread(() -> {
+            try {
+                provider.getClassesNames(classNames, abort);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+        while (true){
+            if (in.ready()){
+                String clientInput = in.readLine();
+                if (clientInput.equals("ABORT")){
+                    abort = true;
+                }
+            }
+            String x = classNames.poll();
+            if (x == null){
+                continue;
+            }
+            if ("---END---".equals(x)){
+                break;
+            } else {
+                out.write(x);
+                out.newLine();
+            }
         }
         out.flush();
     }
