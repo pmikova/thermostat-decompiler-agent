@@ -35,7 +35,7 @@ public class AgentActionWorker extends Thread {
         try {
             executeRequest(socket);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error when trying to execute the request. Exception: " + e);
             try {
                 socket.close();
             } catch (IOException e1) {
@@ -128,12 +128,6 @@ public class AgentActionWorker extends Thread {
             }
         }).start();
         while (true){
-            if (in.ready()){
-                String clientInput = in.readLine();
-                if (clientInput.equals("ABORT")){
-                    abort = true;
-                }
-            }
             String x = classNames.poll();
             if (x == null){
                 continue;
